@@ -142,7 +142,7 @@ static constexpr size_t kMaxKlogReadBytes = 2 * 1024 * 1024;
  */
 
 static bool IsRoDebuggable() {
-  return android::base::GetBoolProperty("ro.debuggable", false);
+  return true;
 }
 
 // Clear the recovery command and prepare to boot a (hopefully working) system,
