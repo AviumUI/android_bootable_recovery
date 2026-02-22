@@ -60,8 +60,8 @@ enum DirectRenderManager {
 };
 
 namespace {
-constexpr uint8_t kLightBgR = 0xd0;
-constexpr uint8_t kLightBgG = 0xeb;
+constexpr uint8_t kLightBgR = 0xed;
+constexpr uint8_t kLightBgG = 0xf7;
 constexpr uint8_t kLightBgB = 0xff;
 constexpr uint8_t kLightTextR = 0x0f;
 constexpr uint8_t kLightTextG = 0x17;
@@ -102,11 +102,15 @@ void RecolorSurfaceForLightTheme(GRSurface* surface) {
   GetRgbIndices(gr_pixel_format(), &r, &g, &b);
 
   constexpr uint8_t kDarkThreshold = 8;
+  constexpr uint8_t kOldLightBgR = 0xd0;
+  constexpr uint8_t kOldLightBgG = 0xeb;
+  constexpr uint8_t kOldLightBgB = 0xff;
   for (size_t y = 0; y < surface->height; ++y) {
     uint8_t* row = surface->data() + y * surface->row_bytes;
     for (size_t x = 0; x < surface->width; ++x) {
       uint8_t* p = row + x * 4;
-      if (p[r] <= kDarkThreshold && p[g] <= kDarkThreshold && p[b] <= kDarkThreshold) {
+      if ((p[r] <= kDarkThreshold && p[g] <= kDarkThreshold && p[b] <= kDarkThreshold) ||
+          (p[r] == kOldLightBgR && p[g] == kOldLightBgG && p[b] == kOldLightBgB)) {
         p[r] = kLightBgR;
         p[g] = kLightBgG;
         p[b] = kLightBgB;
