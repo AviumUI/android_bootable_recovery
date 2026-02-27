@@ -302,22 +302,26 @@ static InstallResult apply_update_menu(Device* device, Device::BuiltinAction* re
   std::vector<std::string> items;
 
   const int item_sideload = 0;
-  const int item_virtiofs = 1;
+  int item_virtiofs = -1;
+  int item_root = -1;
   unsigned int non_storage_items;
   std::vector<VolumeInfo> volumes;
 
   InstallResult status = INSTALL_NONE;
 
   for (;;) {
-    non_storage_items = 1; // ADB sideload, at least
-
     items.clear();
     items.push_back("Apply from ADB");
 
     if (InitializeVirtiofs()) {
-      non_storage_items++;
+      item_virtiofs = static_cast<int>(items.size());
       items.push_back("Choose from virtiofs");
     }
+
+    item_root = static_cast<int>(items.size());
+    items.push_back("Choose from /");
+
+    non_storage_items = items.size();
 
     VolumeManager::Instance()->getVolumeInfo(volumes);
     for (auto vol = volumes.begin(); vol != volumes.end(); /* empty */) {
@@ -345,8 +349,10 @@ static InstallResult apply_update_menu(Device* device, Device::BuiltinAction* re
 
     if (chosen == item_sideload) {
       status = ApplyFromAdb(device, false /* rescue_mode */, reboot_action);
-    } else if (chosen == item_virtiofs && InitializeVirtiofs()) {
+    } else if (item_virtiofs >= 0 && chosen == item_virtiofs && InitializeVirtiofs()) {
       status = ApplyFromVirtiofs(device);
+    } else if (item_root >= 0 && chosen == item_root) {
+      status = ApplyFromPath(device, "/");
     } else {
       status = ApplyFromStorage(device, volumes[chosen - non_storage_items]);
     }

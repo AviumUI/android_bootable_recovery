@@ -33,4 +33,7 @@ std::string BrowseDirectory(const std::string& path, Device* device, RecoveryUI*
 // block map file with the prefix '@'; e.g. /sdcard/package.zip, @/cache/recovery/block.map.
 InstallResult InstallWithFuseFromPath(std::string_view path, Device* device);
 
+// Browse and install a package from |base_path| without mounting volumes.
+InstallResult ApplyFromPath(Device* device, const std::string& base_path);
+
 InstallResult ApplyFromStorage(Device* device, VolumeInfo& vi);

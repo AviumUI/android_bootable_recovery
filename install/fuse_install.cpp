@@ -113,7 +113,7 @@ std::string BrowseDirectory(const std::string& path, Device* device, RecoveryUI*
 
     const std::string& item = entries[chosen_item];
 
-    std::string new_path = path + "/" + item;
+    std::string new_path = (fs::path(path) / item).string();
     if (new_path.back() == '/') {
       // Recurse down into a subdirectory.
       new_path.pop_back();
@@ -230,4 +230,34 @@ InstallResult ApplyFromStorage(Device* device, VolumeInfo& vi) {
 
   VolumeManager::Instance()->volumeUnmount(vi.mId);
   return result;
+}
+
+InstallResult ApplyFromPath(Device* device, const std::string& base_path) {
+  auto ui = device->GetUI();
+  std::string path = BrowseDirectory(base_path, device, ui);
+  if (path.empty()) {
+    return INSTALL_NONE;
+  }
+
+  if (access(path.c_str(), R_OK) != 0) {
+    PLOG(ERROR) << "Can't read " << path;
+    ui->Print("Can't read %s\n", path.c_str());
+    return INSTALL_ERROR;
+  }
+
+  ui->Print("\n-- Install %s ...\n", path.c_str());
+  SetSdcardUpdateBootloaderMessage();
+
+  if (android::base::EndsWithIgnoreCase(path, ".map")) {
+    path = "@" + path;
+    return InstallWithFuseFromPath(path, device);
+  }
+
+  auto package = Package::CreateFilePackage(
+      path, std::bind(&RecoveryUI::SetProgress, ui, std::placeholders::_1));
+  if (!package) {
+    ui->Print("Failed to open %s\n", path.c_str());
+    return INSTALL_ERROR;
+  }
+  return InstallPackage(package.get(), path, false, 0 /* retry_count */, device);
 }
