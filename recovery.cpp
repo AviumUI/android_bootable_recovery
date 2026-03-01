@@ -320,7 +320,7 @@ static InstallResult apply_update_menu(Device* device, Device::BuiltinAction* re
     }
 
     item_root = static_cast<int>(items.size());
-    items.push_back("Choose from /");
+    items.push_back("Choose from / (Beta)");
 
     non_storage_items = items.size();
 
