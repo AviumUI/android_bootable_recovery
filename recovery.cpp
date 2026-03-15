@@ -601,6 +601,7 @@ static Device::BuiltinAction PromptAndWait(Device* device, InstallResult status)
         break;
 
       case INSTALL_REBOOT:
+      case INSTALL_REBOOT_RECOVERY:
         // All the reboots should have been handled prior to entering PromptAndWait() or immediately
         // after installing a package.
         LOG(FATAL) << "Invalid status code of INSTALL_REBOOT";
@@ -721,6 +722,9 @@ change_menu:
         }
         if (status == INSTALL_NONE) {
           update_in_progress = false;
+        }
+        if (status == INSTALL_REBOOT_RECOVERY) {
+          return Device::REBOOT_RECOVERY;
         }
 
         ui->Print("\nInstall completed with status %d.\n", status);
