@@ -305,6 +305,7 @@ static InstallResult apply_update_menu(Device* device, Device::BuiltinAction* re
   const int item_sideload = 0;
   int item_virtiofs = -1;
   int item_root = -1;
+  int item_usb = -1;
   unsigned int non_storage_items;
   std::vector<VolumeInfo> volumes;
 
@@ -318,9 +319,16 @@ static InstallResult apply_update_menu(Device* device, Device::BuiltinAction* re
       item_virtiofs = static_cast<int>(items.size());
       items.push_back("Choose from virtiofs");
     }
-
     item_root = static_cast<int>(items.size());
     items.push_back("Choose from / (Beta)");
+
+    // If any USB disks are present, provide a top-level "Choose from USB" shortcut
+    std::vector<VolumeInfo> usb_volumes;
+    VolumeManager::Instance()->getUsbVolumeInfo(usb_volumes);
+    if (!usb_volumes.empty()) {
+      item_usb = static_cast<int>(items.size());
+      items.push_back("Choose from USB");
+    }
 
     non_storage_items = items.size();
 
@@ -354,6 +362,30 @@ static InstallResult apply_update_menu(Device* device, Device::BuiltinAction* re
       status = ApplyFromVirtiofs(device);
     } else if (item_root >= 0 && chosen == item_root) {
       status = ApplyFromPath(device, "/");
+    } else if (item_usb >= 0 && chosen == item_usb) {
+      // Show submenu of USB volumes only
+      std::vector<VolumeInfo> usb_volumes;
+      VolumeManager::Instance()->getUsbVolumeInfo(usb_volumes);
+      if (usb_volumes.empty()) {
+        // Nothing available
+        status = INSTALL_NONE;
+      } else {
+        std::vector<std::string> usb_items;
+        for (const auto& uv : usb_volumes) {
+          usb_items.push_back("Choose from " + uv.mLabel);
+        }
+        std::vector<std::string> usb_headers{ "Choose USB storage" };
+        int usb_chosen = ui->ShowMenu(
+            usb_headers, usb_items, 0, false,
+            std::bind(&Device::HandleMenuKey, device, std::placeholders::_1, std::placeholders::_2));
+        if (usb_chosen == Device::kGoBack) {
+          status = INSTALL_NONE;
+        } else if (usb_chosen == static_cast<int>(RecoveryUI::KeyError::INTERRUPTED)) {
+          return INSTALL_KEY_INTERRUPTED;
+        } else {
+          status = ApplyFromStorage(device, usb_volumes[usb_chosen]);
+        }
+      }
     } else {
       status = ApplyFromStorage(device, volumes[chosen - non_storage_items]);
     }
@@ -798,6 +830,24 @@ change_menu:
             ui->Print("Unmounted /mnt/system.\n");
             mounted = false;
           }
+        }
+        break;
+      }
+      case Device::MOUNT_USB_OTG: {
+        int mounted = android::volmgr::VolumeManager::Instance()->mountUsbVolumes();
+        if (mounted > 0) {
+          ui->Print("Mounted %d USB OTG volume(s).\n", mounted);
+        } else {
+          ui->Print("No USB OTG storage found or mount failed.\n");
+        }
+        break;
+      }
+      case Device::UNMOUNT_USB_OTG: {
+        int unmounted = android::volmgr::VolumeManager::Instance()->unmountUsbVolumes();
+        if (unmounted > 0) {
+          ui->Print("Unmounted %d USB OTG volume(s).\n", unmounted);
+        } else {
+          ui->Print("No mounted USB OTG storage found.\n");
         }
         break;
       }

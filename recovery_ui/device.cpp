@@ -42,6 +42,8 @@ static std::vector<menu_action_t> g_main_actions{
 static std::vector<std::string> g_advanced_header{ "Advanced options" };
 static std::vector<menu_action_t> g_advanced_actions{
   { "Mount/unmount system", Device::MOUNT_SYSTEM },
+  { "Mount USB OTG", Device::MOUNT_USB_OTG },
+  { "Unmount USB OTG", Device::UNMOUNT_USB_OTG },
   { "View logs", Device::MENU_LOGS },
   { "Enable ADB", Device::ENABLE_ADB },
   { "Switch slot", Device::SWAP_SLOT },

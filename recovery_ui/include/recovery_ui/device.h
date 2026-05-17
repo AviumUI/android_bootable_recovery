@@ -77,6 +77,8 @@ class Device {
     SWAP_SLOT = 102,
     UI_THEME_LIGHT = 103,
     UI_THEME_DARK = 104,
+    MOUNT_USB_OTG = 106,
+    UNMOUNT_USB_OTG = 107,
     MENU_BASE = 200,
     MENU_WIPE = 202,
     MENU_ADVANCED = 203,

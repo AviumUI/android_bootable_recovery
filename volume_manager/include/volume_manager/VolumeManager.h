@@ -105,12 +105,16 @@ class VolumeManager {
     bool unmountAll(void);
 
     void getVolumeInfo(std::vector<VolumeInfo>& info);
+    bool hasUsbVolumes();
+    void getUsbVolumeInfo(std::vector<VolumeInfo>& info);
 
     VolumeBase* findVolume(const std::string& id);
 
     bool volumeMount(const std::string& id);
     bool volumeUnmount(const std::string& id, bool detach = false);
     bool volumeFormat(const std::string& id, const std::string& fsType);
+    int mountUsbVolumes(void);
+    int unmountUsbVolumes(void);
 
   public:
     void addDiskSource(DiskSource* source);

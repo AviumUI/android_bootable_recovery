@@ -239,6 +239,27 @@ void VolumeManager::getVolumeInfo(std::vector<VolumeInfo>& info) {
     }
 }
 
+bool VolumeManager::hasUsbVolumes() {
+    std::lock_guard<std::mutex> lock(mLock);
+    for (const auto& disk : mDisks) {
+        if (disk->getFlags() & Disk::Flags::kUsb) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void VolumeManager::getUsbVolumeInfo(std::vector<VolumeInfo>& info) {
+    std::lock_guard<std::mutex> lock(mLock);
+    info.clear();
+    for (const auto& disk : mDisks) {
+        if (!(disk->getFlags() & Disk::Flags::kUsb)) {
+            continue;
+        }
+        disk->getVolumeInfo(info);
+    }
+}
+
 VolumeBase* VolumeManager::findVolume(const std::string& id) {
     if (mInternalEmulated && mInternalEmulated->getId() == id) {
         return mInternalEmulated;
@@ -260,6 +281,60 @@ bool VolumeManager::volumeMount(const std::string& id) {
     }
     status_t res = vol->mount();
     return (res == OK);
+}
+
+int VolumeManager::mountUsbVolumes(void) {
+    std::lock_guard<std::mutex> lock(mLock);
+    int mounted = 0;
+
+    for (const auto& disk : mDisks) {
+        if (!(disk->getFlags() & Disk::Flags::kUsb)) {
+            continue;
+        }
+
+        std::list<std::string> volume_ids;
+        disk->listVolumes(VolumeBase::Type::kPublic, volume_ids);
+        for (const auto& id : volume_ids) {
+            auto vol = disk->findVolume(id);
+            if (!vol || !vol->isMountable()) {
+                continue;
+            }
+            if (vol->getState() == VolumeBase::State::kMounted) {
+                mounted++;
+                continue;
+            }
+            if (vol->mount() == OK) {
+                mounted++;
+            }
+        }
+    }
+
+    return mounted;
+}
+
+int VolumeManager::unmountUsbVolumes(void) {
+    std::lock_guard<std::mutex> lock(mLock);
+    int unmounted = 0;
+
+    for (const auto& disk : mDisks) {
+        if (!(disk->getFlags() & Disk::Flags::kUsb)) {
+            continue;
+        }
+
+        std::list<std::string> volume_ids;
+        disk->listVolumes(VolumeBase::Type::kPublic, volume_ids);
+        for (const auto& id : volume_ids) {
+            auto vol = disk->findVolume(id);
+            if (!vol || vol->getState() != VolumeBase::State::kMounted) {
+                continue;
+            }
+            if (vol->unmount() == OK) {
+                unmounted++;
+            }
+        }
+    }
+
+    return unmounted;
 }
 
 bool VolumeManager::volumeUnmount(const std::string& id, bool detach /* = false */) {
